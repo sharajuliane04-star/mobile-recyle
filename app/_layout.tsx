@@ -13,6 +13,16 @@ export const unstable_settings = {
   anchor: '(app)',
 };
 
+// [BARU] Wajib diset supaya notifikasi beneran muncul (banner/suara) saat app lagi dibuka
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [showSplash, setShowSplash] = useState(true);
@@ -25,6 +35,23 @@ export default function RootLayout() {
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 1400);
     return () => clearTimeout(timer);
+  }, []);
+
+  // [BARU] Minta izin notifikasi saat app pertama kali dibuka
+  useEffect(() => {
+    (async () => {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        console.log('Izin notifikasi tidak diberikan oleh user.');
+      }
+    })();
   }, []);
 
   // [BARU] Setup push notifications saat app pertama kali dibuka

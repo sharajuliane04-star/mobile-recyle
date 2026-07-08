@@ -1,18 +1,14 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BG, DARK, GREEN, GREEN_LIGHT } from '@/constants/recycle-theme';
-
-const RIWAYAT = [
-  { icon: '🧴', label: 'Plastik Rumah Tangga', time: 'Hari ini, 10:20 WIB', poin: '+250' },
-  { icon: '📦', label: 'Kardus & Kertas', time: '18 Mei, 14:05 WIB', poin: '+500' },
-  { icon: '🥫', label: 'Logam & Kaleng', time: '15 Mei, 09:00 WIB', poin: '+180' },
-];
+import { useRecycleHistory } from '@/contexts/recycle-history-context';
 
 export default function RecycleDashboard() {
   const router = useRouter();
   const scale = useRef(new Animated.Value(0.7)).current;
+  const { history, totalPoin, loading } = useRecycleHistory();
 
   useEffect(() => {
     Animated.spring(scale, {
@@ -41,12 +37,12 @@ export default function RecycleDashboard() {
           <Text style={styles.balanceLabel}>SALDO TABUNGAN</Text>
           <View style={styles.balanceRow}>
             <Animated.Text style={[styles.balanceValue, { transform: [{ scale }] }]}>
-              5.250
+              {totalPoin.toLocaleString('id-ID')}
             </Animated.Text>
             <Text style={styles.balanceUnit}>Poin</Text>
           </View>
           <Text style={styles.balanceSub}>
-            Setara nilai: <Text style={styles.balanceSubStrong}>Rp 52.500</Text>
+            Setara nilai: <Text style={styles.balanceSubStrong}>Rp {(totalPoin * 10).toLocaleString('id-ID')}</Text>
           </Text>
         </View>
 
@@ -56,22 +52,33 @@ export default function RecycleDashboard() {
         </Pressable>
 
         <Text style={styles.sectionTitle}>Aktivitas Terakhir</Text>
-        <View style={styles.listCard}>
-          {RIWAYAT.map((item, i) => (
-            <View
-              key={item.label}
-              style={[styles.listItem, i < RIWAYAT.length - 1 && styles.listItemDivider]}>
-              <View style={styles.listIcon}>
-                <Text style={{ fontSize: 18 }}>{item.icon}</Text>
+        {loading ? (
+          <View style={styles.emptyCard}>
+            <ActivityIndicator color={GREEN} />
+            <Text style={[styles.emptyText, { marginTop: 8 }]}>Memuat aktivitas...</Text>
+          </View>
+        ) : history.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>Belum ada aktivitas. Yuk setor sampah pertamamu!</Text>
+          </View>
+        ) : (
+          <View style={styles.listCard}>
+            {history.map((item, i) => (
+              <View
+                key={item.id}
+                style={[styles.listItem, i < history.length - 1 && styles.listItemDivider]}>
+                <View style={styles.listIcon}>
+                  <Text style={{ fontSize: 18 }}>{item.icon}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.listLabel}>{item.label}</Text>
+                  <Text style={styles.listTime}>{item.time}</Text>
+                </View>
+                <Text style={styles.listPoin}>+{item.poin}</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.listLabel}>{item.label}</Text>
-                <Text style={styles.listTime}>{item.time}</Text>
-              </View>
-              <Text style={styles.listPoin}>{item.poin}</Text>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -134,6 +141,17 @@ const styles = StyleSheet.create({
   },
   ctaText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: DARK },
+  emptyCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+  },
+  emptyText: { fontSize: 13, color: '#999', textAlign: 'center' },
   listCard: {
     backgroundColor: '#fff',
     borderRadius: 20,

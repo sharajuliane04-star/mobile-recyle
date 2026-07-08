@@ -1,68 +1,14 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import * as Notifications from 'expo-notifications';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef, useState } from 'react';
-import { Alert } from 'react-native';
-import 'react-native-reanimated';
 
-import SplashScreenView from '@/components/splash-screen-view';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { RecycleHistoryProvider } from '@/contexts/recycle-history-context';
 
-export const unstable_settings = {
-  anchor: '(app)',
-};
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [showSplash, setShowSplash] = useState(true);
-
-  const notificationListener = useRef<Notifications.EventSubscription>(null);
-  const responseListener = useRef<Notifications.EventSubscription>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 1400);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    notificationListener.current = Notifications.addNotificationReceivedListener(
-      (notification) => {
-        console.log('Notifikasi diterima:', notification);
-        const title = notification.request.content.title ?? 'Notifikasi Baru';
-        const body = notification.request.content.body ?? 'Pesan masuk tanpa isi.';
-        Alert.alert(title, body);
-      },
-    );
-
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        console.log('Notifikasi diklik:', response);
-        const title = response.notification.request.content.title ?? 'Notifikasi Dibuka';
-        const body = response.notification.request.content.body ?? 'User membuka notifikasi.';
-        Alert.alert(title, body);
-      },
-    );
-
-    return () => {
-      notificationListener.current?.remove();
-      responseListener.current?.remove();
-    };
-  }, []);
-
-  if (showSplash) {
-    return <SplashScreenView />;
-  }
-
+export default function AppGroupLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="register" options={{ headerShown: false }} />
-        <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
-        <Stack.Screen name="(app)" options={{ headerShown: false }} />
+    <RecycleHistoryProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="recycle" />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    </RecycleHistoryProvider>
   );
 }

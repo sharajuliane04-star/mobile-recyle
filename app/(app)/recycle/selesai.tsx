@@ -1,19 +1,37 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { DARK, GREEN, GREEN_DARK, GREEN_LIGHT } from '@/constants/recycle-theme';
 
-const SUMMARY: [string, string][] = [
-  ['Kategori', 'Plastik 🧴'],
-  ['Berat Aktual', '3.8 kg'],
-  ['Nilai Rupiah', 'Rp 3.500'],
-];
+const CATEGORY_ICONS: Record<string, string> = {
+  Plastik: '🧴',
+  Kardus: '📦',
+  Logam: '🥫',
+  Kaca: '🪟',
+  Elektronik: '📱',
+};
 
 export default function Selesai() {
   const router = useRouter();
+  const { category, weight, poin } = useLocalSearchParams<{
+    category?: string;
+    weight?: string;
+    poin?: string;
+  }>();
   const scale = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(0)).current;
+
+  const kategori = category ?? 'Plastik';
+  const beratKg = weight ?? '3.8';
+  const totalPoin = poin ?? '350';
+  const nilaiRupiah = (Number(totalPoin) || 0) * 10;
+
+  const SUMMARY: [string, string][] = [
+    ['Kategori', `${kategori} ${CATEGORY_ICONS[kategori] ?? '♻️'}`],
+    ['Berat Aktual', `${beratKg} kg`],
+    ['Nilai Rupiah', `Rp ${nilaiRupiah.toLocaleString('id-ID')}`],
+  ];
 
   useEffect(() => {
     Animated.spring(scale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }).start();
@@ -21,7 +39,7 @@ export default function Selesai() {
   }, [scale, fade]);
 
   const onShare = () => {
-    Share.share({ message: 'Aku baru setor sampah dan dapat +350 Poin di RecyclePals! ♻️' });
+    Share.share({ message: `Aku baru setor sampah dan dapat +${totalPoin} Poin di RecyclePals! ♻️` });
   };
 
   return (
@@ -42,7 +60,7 @@ export default function Selesai() {
           <View style={styles.summaryHeader}>
             <Text style={styles.summaryHeaderLabel}>POIN DITAMBAHKAN</Text>
             <Text style={styles.summaryPoin}>
-              +350 <Text style={styles.summaryPoinUnit}>Poin</Text>
+              +{totalPoin} <Text style={styles.summaryPoinUnit}>Poin</Text>
             </Text>
           </View>
           <View style={styles.summaryBody}>

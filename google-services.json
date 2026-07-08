@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "851437010411",
+    "project_id": "jull-1ccd1",
+    "storage_bucket": "jull-1ccd1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:851437010411:android:1210629e38bf397bb2adae",
+        "android_client_info": {
+          "package_name": "jull.com"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "851437010411-0v9f96io0eo8vikfb40vd69pn9bv5a17.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAY2mEzbeBS4BI2LlW7csfFJk3HUpLgq2o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "851437010411-0v9f96io0eo8vikfb40vd69pn9bv5a17.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -10,10 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.recyclepals.app"
+      "bundleIdentifier": "jull.com"
     },
     "android": {
-      "package": "com.recyclepals.app",
+      "package": "jull.com",
       "adaptiveIcon": {
         "backgroundColor": "#FFF9F3",
         "foregroundImage": "./assets/images/android-icon-foreground.png"

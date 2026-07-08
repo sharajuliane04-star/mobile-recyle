@@ -1,11 +1,23 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BG, DARK, GREEN, GREEN_DARK, GREEN_LIGHT } from '@/constants/recycle-theme';
+import { useRecycleHistory } from '@/contexts/recycle-history-context';
+
+const CATEGORY_ICONS: Record<string, string> = {
+  Plastik: '🧴',
+  Kardus: '📦',
+  Logam: '🥫',
+  Kaca: '🪟',
+  Elektronik: '📱',
+};
 
 export default function Tracking() {
   const router = useRouter();
+  const { category, weight } = useLocalSearchParams<{ category?: string; weight?: string }>();
+  const { addEntry } = useRecycleHistory();
   const [eta, setEta] = useState(12);
   const truckX = useRef(new Animated.Value(0)).current;
 
@@ -24,6 +36,28 @@ export default function Tracking() {
     loop.start();
     return () => loop.stop();
   }, [truckX]);
+
+  const onConfirm = async () => {
+    const kategori = category ?? 'Plastik';
+    const beratKg = Number(weight ?? '3.5') || 3.5;
+    const poin = Math.round(beratKg * 100);
+    const icon = CATEGORY_ICONS[kategori] ?? '♻️';
+
+    await addEntry({ icon, label: `${kategori} (${beratKg} kg)`, poin });
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Setoran Berhasil! 🎉',
+        body: `+${poin} Poin telah ditambahkan ke saldo kamu.`,
+      },
+      trigger: null,
+    });
+
+    router.push({
+      pathname: '/recycle/selesai',
+      params: { category: kategori, weight: String(beratKg), poin: String(poin) },
+    });
+  };
 
   return (
     <View style={styles.screen}>
@@ -87,12 +121,7 @@ export default function Tracking() {
       </View>
 
       <View style={styles.footer}>
-        <Pressable
-          style={styles.chatBtn}
-          onPress={() => Alert.alert('Chat Driver', 'Fitur chat akan segera hadir.')}>
-          <Text style={styles.chatBtnText}>💬 Chat Driver</Text>
-        </Pressable>
-        <Pressable style={styles.confirmBtn} onPress={() => router.push('/recycle/selesai')}>
+        <Pressable style={styles.confirmBtn} onPress={onConfirm}>
           <Text style={styles.confirmBtnText}>✅ Konfirmasi Selesai</Text>
         </Pressable>
       </View>
@@ -187,19 +216,9 @@ const styles = StyleSheet.create({
   bannerTitle: { fontSize: 13, fontWeight: '600', color: GREEN_DARK },
   bannerSub: { fontSize: 12, color: '#888', marginTop: 2 },
   footer: { flexDirection: 'row', gap: 12, padding: 20, paddingBottom: 32 },
-  chatBtn: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: GREEN,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-  },
-  chatBtnText: { color: GREEN, fontSize: 14, fontWeight: '700' },
   confirmBtn: {
-    flex: 2,
-    padding: 14,
+    flex: 1,
+    padding: 16,
     borderRadius: 16,
     backgroundColor: DARK,
     alignItems: 'center',

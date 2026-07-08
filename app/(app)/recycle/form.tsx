@@ -1,6 +1,8 @@
+import * as ImagePicker from 'expo-image-picker';
+import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { BG, DARK, GREEN, GREEN_DARK, GREEN_LIGHT } from '@/constants/recycle-theme';
 
@@ -13,12 +15,76 @@ const CATEGORIES = [
 ];
 
 const WEIGHT_PRESETS = ['1', '2.5', '3.5', '5', '10'];
-const ADDRESS = 'Jl. Telekomunikasi No. 1,\nBojongsoang, Bandung';
+const DEFAULT_ADDRESS = 'Jl. Telekomunikasi No. 1,\nBojongsoang, Bandung';
 
 export default function FormPenjemputan() {
   const router = useRouter();
   const [category, setCategory] = useState('Plastik');
   const [weight, setWeight] = useState('3.5');
+  const [address, setAddress] = useState(DEFAULT_ADDRESS);
+  const [photo, setPhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
+
+  const pickImage = async (source: 'camera' | 'library') => {
+    const permission =
+      source === 'camera'
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        'Izin Dibutuhkan',
+        source === 'camera'
+          ? 'Aplikasi butuh izin kamera untuk mengambil foto.'
+          : 'Aplikasi butuh izin galeri untuk memilih foto.',
+      );
+      return;
+    }
+
+    const result =
+      source === 'camera'
+        ? await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: true })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            quality: 0.7,
+            allowsEditing: true,
+          });
+
+    if (!result.canceled && result.assets?.[0]) {
+      setPhoto(result.assets[0]);
+    }
+  };
+
+  const onAttachPhoto = () => {
+    Alert.alert('Lampirkan Foto', 'Pilih sumber foto', [
+      { text: 'Kamera', onPress: () => pickImage('camera') },
+      { text: 'Galeri', onPress: () => pickImage('library') },
+      { text: 'Batal', style: 'cancel' },
+    ]);
+  };
+
+  const onSubmit = async () => {
+    if (!photo) {
+      Alert.alert('Foto Belum Ada', 'Silakan lampirkan foto kondisi sampah terlebih dahulu.');
+      return;
+    }
+    if (!address.trim()) {
+      Alert.alert('Alamat Kosong', 'Silakan isi alamat penjemputan.');
+      return;
+    }
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Permintaan Pickup Diterima 🚛',
+        body: `Kurir akan menjemput ${category.toLowerCase()} kamu sebentar lagi.`,
+      },
+      trigger: null,
+    });
+
+    router.push({
+      pathname: '/recycle/tracking',
+      params: { category, weight },
+    });
+  };
 
   return (
     <View style={styles.screen}>
@@ -77,28 +143,39 @@ export default function FormPenjemputan() {
         <View style={styles.card}>
           <Text style={styles.cardLabel}>ALAMAT LENGKAP RUMAH</Text>
           <TextInput
-            editable={false}
+            value={address}
+            onChangeText={setAddress}
             multiline
-            value={ADDRESS}
+            placeholder="Masukkan alamat penjemputan"
             style={styles.addressBox}
           />
         </View>
 
         <View style={styles.card}>
           <Text style={styles.cardLabel}>LAMPIRKAN FOTO KONDISI SAMPAH</Text>
-          <View style={styles.photoBox}>
-            <Text style={{ fontSize: 36 }}>🖼️</Text>
-            <Text style={styles.photoName}>sampah_botol_juli.jpg</Text>
-            <Text style={styles.photoMeta}>2.3 MB · Siap diupload</Text>
-            <View style={styles.photoCheck}>
-              <Text style={{ color: '#fff', fontSize: 14 }}>✓</Text>
-            </View>
-          </View>
+          <Pressable style={styles.photoBox} onPress={onAttachPhoto}>
+            {photo ? (
+              <>
+                <Image source={{ uri: photo.uri }} style={styles.photoPreview} />
+                <Text style={styles.photoName}>Foto siap diupload</Text>
+                <Text style={styles.photoMeta}>Ketuk untuk ganti foto</Text>
+                <View style={styles.photoCheck}>
+                  <Text style={{ color: '#fff', fontSize: 14 }}>✓</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={{ fontSize: 36 }}>🖼️</Text>
+                <Text style={styles.photoName}>Ketuk untuk lampirkan foto</Text>
+                <Text style={styles.photoMeta}>Ambil dari kamera atau galeri</Text>
+              </>
+            )}
+          </Pressable>
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
-        <Pressable style={styles.submitBtn} onPress={() => router.push('/recycle/tracking')}>
+        <Pressable style={styles.submitBtn} onPress={onSubmit}>
           <Text style={styles.submitBtnText}>🚛 Request Pickup</Text>
         </Pressable>
       </View>
@@ -205,6 +282,13 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: GREEN_LIGHT,
     position: 'relative',
+    overflow: 'hidden',
+  },
+  photoPreview: {
+    width: '100%',
+    height: 160,
+    borderRadius: 12,
+    marginBottom: 4,
   },
   photoName: { fontSize: 13, fontWeight: '600', color: GREEN_DARK },
   photoMeta: { fontSize: 11, color: '#999' },
