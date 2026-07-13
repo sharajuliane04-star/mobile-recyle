@@ -2,7 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { BG, DARK, GREEN, GREEN_DARK, GREEN_LIGHT } from '@/constants/recycle-theme';
 
@@ -23,6 +23,7 @@ export default function FormPenjemputan() {
   const [weight, setWeight] = useState('3.5');
   const [address, setAddress] = useState(DEFAULT_ADDRESS);
   const [photo, setPhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const pickImage = async (source: 'camera' | 'library') => {
     const permission =
@@ -55,6 +56,11 @@ export default function FormPenjemputan() {
   };
 
   const onAttachPhoto = () => {
+    if (Platform.OS === 'web') {
+      pickImage('library');
+      return;
+    }
+
     Alert.alert('Lampirkan Foto', 'Pilih sumber foto', [
       { text: 'Kamera', onPress: () => pickImage('camera') },
       { text: 'Galeri', onPress: () => pickImage('library') },
@@ -63,6 +69,7 @@ export default function FormPenjemputan() {
   };
 
   const onSubmit = async () => {
+    if (isSubmitting) return;
     if (!photo) {
       Alert.alert('Foto Belum Ada', 'Silakan lampirkan foto kondisi sampah terlebih dahulu.');
       return;
@@ -72,18 +79,23 @@ export default function FormPenjemputan() {
       return;
     }
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Permintaan Pickup Diterima 🚛',
-        body: `Kurir akan menjemput ${category.toLowerCase()} kamu sebentar lagi.`,
-      },
-      trigger: null,
-    });
+    setIsSubmitting(true);
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Permintaan Pickup Diterima 🚛',
+          body: `Kurir akan menjemput ${category.toLowerCase()} kamu sebentar lagi.`,
+        },
+        trigger: null,
+      });
 
-    router.push({
-      pathname: '/recycle/tracking',
-      params: { category, weight },
-    });
+      router.push({
+        pathname: '/recycle/tracking',
+        params: { category, weight },
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -175,8 +187,13 @@ export default function FormPenjemputan() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Pressable style={styles.submitBtn} onPress={onSubmit}>
-          <Text style={styles.submitBtnText}>🚛 Request Pickup</Text>
+        <Pressable
+          style={[styles.submitBtn, isSubmitting && { opacity: 0.6 }]}
+          onPress={onSubmit}
+          disabled={isSubmitting}>
+          <Text style={styles.submitBtnText}>
+            {isSubmitting ? 'Memproses...' : '🚛 Request Pickup'}
+          </Text>
         </Pressable>
       </View>
     </View>

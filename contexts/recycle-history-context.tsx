@@ -2,13 +2,13 @@ import {
   addDoc,
   collection,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   Timestamp,
   where,
 } from 'firebase/firestore';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { Alert } from 'react-native';
 
 import { auth, db } from '@/lib/firebase';
 
@@ -54,59 +54,81 @@ export function RecycleHistoryProvider({ children }: { children: React.ReactNode
   const [history, setHistory] = useState<RecycleEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // [Firestore] Dengerin realtime data history milik user yang lagi login
   useEffect(() => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) {
-      setHistory([]);
-      setLoading(false);
-      return;
-    }
+    let unsubscribeSnapshot: (() => void) | undefined;
 
-    const historyQuery = query(
-      collection(db, 'recycleHistory'),
-      where('userId', '==', uid),
-      orderBy('createdAt', 'desc'),
-    );
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      unsubscribeSnapshot?.();
+      unsubscribeSnapshot = undefined;
 
-    const unsubscribe = onSnapshot(
-      historyQuery,
-      (snapshot) => {
-        const items: RecycleEntry[] = snapshot.docs.map((docSnap) => {
-          const data = docSnap.data();
-          return {
-            id: docSnap.id,
-            icon: data.icon,
-            label: data.label,
-            poin: data.poin,
-            time: formatTimestamp(data.createdAt),
-          };
-        });
-        setHistory(items);
+      if (!user) {
+        setHistory([]);
         setLoading(false);
-      },
-      (error) => {
-        console.log('Gagal memuat riwayat dari Firestore:', error);
-        setLoading(false);
-      },
-    );
+        return;
+      }
 
-    return unsubscribe;
+      setLoading(true);
+
+      const historyQuery = query(
+        collection(db, 'recycleHistory'),
+        where('userId', '==', user.uid),
+      );
+
+      unsubscribeSnapshot = onSnapshot(
+        historyQuery,
+        (snapshot) => {
+          const items = snapshot.docs.map((docSnap) => {
+            const data = docSnap.data();
+            const createdAt: Timestamp | undefined = data.createdAt;
+            return {
+              id: docSnap.id,
+              icon: data.icon,
+              label: data.label,
+              poin: data.poin,
+              time: formatTimestamp(createdAt),
+              _sortKey: createdAt ? createdAt.toMillis() : Date.now(),
+            };
+          });
+
+          items.sort((a, b) => b._sortKey - a._sortKey);
+
+          setHistory(items.map(({ _sortKey, ...rest }) => rest));
+          setLoading(false);
+        },
+        (error) => {
+          console.log('Gagal memuat riwayat dari Firestore:', error);
+          setLoading(false);
+          Alert.alert(
+            'Gagal Memuat Riwayat',
+            `${error.message}\n\nCek Firestore Rules atau koneksi internet kamu.`,
+          );
+        },
+      );
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeSnapshot?.();
+    };
   }, []);
 
   const addEntry = async (entry: NewEntryInput) => {
     const uid = auth.currentUser?.uid;
     if (!uid) {
-      console.log('Tidak bisa menyimpan riwayat: user belum login.');
+      Alert.alert('Belum Login', 'Tidak bisa menyimpan riwayat karena kamu belum login.');
       return;
     }
 
-    await addDoc(collection(db, 'recycleHistory'), {
-      ...entry,
-      userId: uid,
-      createdAt: serverTimestamp(),
-    });
-    // Tidak perlu update state manual, onSnapshot di atas otomatis nangkep data baru
+    try {
+      await addDoc(collection(db, 'recycleHistory'), {
+        ...entry,
+        userId: uid,
+        createdAt: serverTimestamp(),
+      });
+    } catch (error: any) {
+      console.log('Gagal menyimpan riwayat ke Firestore:', error);
+      Alert.alert('Gagal Menyimpan', error?.message ?? 'Terjadi kesalahan saat menyimpan riwayat.');
+    }
   };
 
   const totalPoin = useMemo(

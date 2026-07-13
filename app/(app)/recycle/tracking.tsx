@@ -19,6 +19,7 @@ export default function Tracking() {
   const { category, weight } = useLocalSearchParams<{ category?: string; weight?: string }>();
   const { addEntry } = useRecycleHistory();
   const [eta, setEta] = useState(12);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const truckX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -38,25 +39,32 @@ export default function Tracking() {
   }, [truckX]);
 
   const onConfirm = async () => {
-    const kategori = category ?? 'Plastik';
-    const beratKg = Number(weight ?? '3.5') || 3.5;
-    const poin = Math.round(beratKg * 100);
-    const icon = CATEGORY_ICONS[kategori] ?? '♻️';
+    if (isSubmitting) return; // cegah tap berkali-kali bikin data/notif keganda
+    setIsSubmitting(true);
 
-    await addEntry({ icon, label: `${kategori} (${beratKg} kg)`, poin });
+    try {
+      const kategori = category ?? 'Plastik';
+      const beratKg = Number(weight ?? '3.5') || 3.5;
+      const poin = Math.round(beratKg * 100);
+      const icon = CATEGORY_ICONS[kategori] ?? '♻️';
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Setoran Berhasil! 🎉',
-        body: `+${poin} Poin telah ditambahkan ke saldo kamu.`,
-      },
-      trigger: null,
-    });
+      await addEntry({ icon, label: `${kategori} (${beratKg} kg)`, poin });
 
-    router.push({
-      pathname: '/recycle/selesai',
-      params: { category: kategori, weight: String(beratKg), poin: String(poin) },
-    });
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Setoran Berhasil! 🎉',
+          body: `+${poin} Poin telah ditambahkan ke saldo kamu.`,
+        },
+        trigger: null,
+      });
+
+      router.push({
+        pathname: '/recycle/selesai',
+        params: { category: kategori, weight: String(beratKg), poin: String(poin) },
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -121,8 +129,13 @@ export default function Tracking() {
       </View>
 
       <View style={styles.footer}>
-        <Pressable style={styles.confirmBtn} onPress={onConfirm}>
-          <Text style={styles.confirmBtnText}>✅ Konfirmasi Selesai</Text>
+        <Pressable
+          style={[styles.confirmBtn, isSubmitting && { opacity: 0.6 }]}
+          onPress={onConfirm}
+          disabled={isSubmitting}>
+          <Text style={styles.confirmBtnText}>
+            {isSubmitting ? 'Memproses...' : '✅ Konfirmasi Selesai'}
+          </Text>
         </Pressable>
       </View>
     </View>

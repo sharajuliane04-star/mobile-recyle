@@ -23,19 +23,29 @@
     "web": {
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": [
-      "expo-router",
-      "expo-notifications",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "backgroundColor": "#FFF9F3"
-        }
-      ]
-    ],
+   "plugins": [
+  "expo-router",
+  "expo-notifications",
+  [
+    "expo-splash-screen",
+    {
+      "image": "./assets/images/splash-icon.png",
+      "backgroundColor": "#FFF9F3"
+    }
+  ],
+  [
+    "expo-image-picker",
+    {
+      "photosPermission": "Aplikasi butuh akses galeri untuk melampirkan foto kondisi sampah.",
+      "cameraPermission": "Aplikasi butuh akses kamera untuk memotret kondisi sampah."
+    }
+  ]
+],
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "606ac0fb-9720-4f02-bf4a-a796f6a9f128"
+      }
     }
   }
 }

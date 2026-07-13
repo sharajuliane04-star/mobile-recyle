@@ -13,7 +13,6 @@ export const unstable_settings = {
   anchor: '(app)',
 };
 
-// [BARU] Wajib diset supaya notifikasi beneran muncul (banner/suara) saat app lagi dibuka
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -27,17 +26,14 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [showSplash, setShowSplash] = useState(true);
 
-  // [BARU] Refs untuk listener notifikasi
   const notificationListener = useRef<Notifications.EventSubscription>(null);
   const responseListener = useRef<Notifications.EventSubscription>(null);
 
-  // Tampilkan splash screen custom sebentar saat app pertama dibuka
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 1400);
     return () => clearTimeout(timer);
   }, []);
 
-  // [BARU] Minta izin notifikasi saat app pertama kali dibuka
   useEffect(() => {
     (async () => {
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -54,9 +50,7 @@ export default function RootLayout() {
     })();
   }, []);
 
-  // [BARU] Setup push notifications saat app pertama kali dibuka
   useEffect(() => {
-    // Listener: notifikasi diterima saat app foreground
     notificationListener.current = Notifications.addNotificationReceivedListener(
       (notification) => {
         console.log('Notifikasi diterima:', notification);
@@ -66,18 +60,15 @@ export default function RootLayout() {
       },
     );
 
-    // Listener: user menekan notifikasi
     responseListener.current = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         console.log('Notifikasi diklik:', response);
         const title = response.notification.request.content.title ?? 'Notifikasi Dibuka';
         const body = response.notification.request.content.body ?? 'User membuka notifikasi.';
         Alert.alert(title, body);
-        // Bisa navigasi ke screen tertentu di sini
       },
     );
 
-    // Cleanup listener saat component unmount
     return () => {
       notificationListener.current?.remove();
       responseListener.current?.remove();
